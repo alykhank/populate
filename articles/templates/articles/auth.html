@@ -1,0 +1,9 @@
+<a href="{{ oauth_url }}" target="_blank">Request Verification Code from Readability</a>
+<form action="{% url 'articles:submit' %}" method="post" role="form">
+	{% csrf_token %}
+	<label for="verification">Verification Code:</label>
+	<input type="text" name="verification" placeholder="Verification" id="verification">
+	<input type="text" name="request_token" value="{{request_token}}" hidden>
+	<input type="text" name="request_token_secret" value="{{request_token_secret}}" hidden>
+	<button type="submit" title="Submit">Submit</button>
+</form>
