@@ -2,10 +2,11 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.views import generic
-import os
+import os, json
+import requests
 from rauth import OAuth1Service
 
-from articles.models import Bookmark, Article
+from articles.models import Bookmark, Article, Alchemy, Status
 
 readability = OAuth1Service(
 	consumer_key=os.environ.get('CONS_KEY'),
@@ -19,9 +20,10 @@ readability = OAuth1Service(
 
 class IndexView(generic.ListView):
 	template_name = 'articles/index.html'
+	context_object_name = 'bookmark_list'
 
 	def get_queryset(self):
-		return Bookmark.objects.all()
+		return Article.objects.all()
 
 def auth(request):
 	redirect_uri = 'http://populate-mit.herokuapp.com/auth'
@@ -41,5 +43,42 @@ def submit(request):
 
 def bookmarks(request, request_token, request_token_secret, oauth_verifier):
 	session = readability.get_auth_session(request_token, request_token_secret, data={'oauth_verifier': oauth_verifier})
-	return HttpResponse(session.get('bookmarks'))
+	bookmarks = session.get('bookmarks').content
+	bkmkjson = json.loads(bookmarks)
+	for b in bkmkjson['bookmarks']:
+		bookmark = Bookmark(user_id=b['user_id'], read_percent=b['read_percent'], date_updated=b['date_updated'], favorite=b['favorite'], date_archived=b['date_archived'], date_opened=b['date_opened'], date_added=b['date_added'], article_href=b['article_href'], date_favorited=b['date_favorited'], archive=b['archive'])
+		bookmark.save()
+		r = session.get('articles/' + b['article']['id']).content
+		a = json.loads(r)
+		article = Article(domain=a['domain'], author=a['author'], url=a['url'], lead_image_url=a['lead_image_url'], title=a['title'], excerpt=a['excerpt'], word_count=a['word_count'], content=a['content'], date_published=a['date_published'], dek=a['dek'], short_url=a['short_url'], bookmark=bookmark)
+		article.save()
+		text = requests.post('http://access.alchemyapi.com/calls/url/URLGetText', data={'apikey': os.environ.get('ALCHEMY_API_KEY'), 'url': a['url'], 'outputMode': 'json'}).content
+		conceptsResponse = requests.post('http://access.alchemyapi.com/calls/text/TextGetRankedConcepts', data={'apikey': os.environ.get('ALCHEMY_API_KEY'), 'text': text, 'outputMode': 'json'}).content
+		conceptsJson = json.loads(conceptsResponse)
+		print conceptsJson
+		for c in conceptsJson['concepts']:
+			concept = Alchemy(article=article, concept=c['text'], relevance=c['relevance'])
+			concept.save()
+		concepts = []
+		for concept in Alchemy.objects.filter(article=article):
+			concepts.append(concept.concept)
+		truncatedConcepts = concepts[:2]
+		conceptString = ('+').join(truncatedConcepts)
+		twitterSearchUrl = 'https://twitter.com/search' + '?q=' + conceptString
+	bookmark_list = Article.objects.all()
+	return render(request, 'articles/index.html', {'twitterSearchUrl': twitterSearchUrl, 'bookmark_list': bookmark_list})
+
+class TweetView(generic.ListView):
+	template_name = 'articles/index.html'
+	context_object_name = 'bookmark_list'
+
+	def get_queryset(self):
+		return Article.objects.all()
+
+	def get_context_data(self, **kwargs):
+		# Call the base implementation first to get a context
+		context = super(TweetView, self).get_context_data(**kwargs)
+		# Add in a QuerySet of all the genres
+		context['twitterSearchUrl'] = self.kwargs['twitterSearchUrl']
+		return context
 
