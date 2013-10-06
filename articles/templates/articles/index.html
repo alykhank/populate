@@ -4,7 +4,7 @@
 	<title>Populate</title>
 </head>
 <body>
-	<a href="{{auth_url}}">Authorize Readability</a>
+	<a href="{% url 'articles:auth' %}">Authorize Readability</a>
 	{% for bookmark in bookmark_list %}
 		<h1>{{ bookmark.article.title }}</h1>
 		<h1>{{ bookmark.article.author }}</h1>
