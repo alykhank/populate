@@ -6,7 +6,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     # Examples:
-    url(r'^$', include('articles.urls')),
+    url(r'^', include('articles.urls', namespace='articles')),
     # url(r'^populate/', include('populate.foo.urls')),
 
     # Uncomment the admin/doc line below to enable admin documentation:
