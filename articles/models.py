@@ -34,6 +34,7 @@ class Article(models.Model):
 	short_url = models.URLField(null=True)
 	# article_id
 	bookmark = models.ForeignKey(Bookmark)
+	twitterLink = models.URLField()
 
 	def __unicode__(self):
 		return "<Article('%s', '%s')>" % (self.title, self.author)

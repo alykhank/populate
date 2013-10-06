@@ -30,18 +30,35 @@
 		</div><!-- navbar-header -->
 		<div class="collapse navbar-collapse navbar-ex1-collapse">
 			<ul class="nav navbar-nav">
-				<li><a href="/">Home</a></li>
 				<li><a href="{% url 'articles:auth' %}">Authorize Services</a></li>
 			</ul>
 		</div><!-- navbar-collapse -->
 	</nav>
 	<div class="container">
-		{% if twitterSearchUrl %}
-			<a href="{{ twitterSearchUrl }}">Find Relevant Tweets</a>
-		{% endif %}
-		{% for bookmark in bookmark_list %}
-			<h1>{{ bookmark.title }}</h1>
-		{% endfor %}
+		<table class="table table-hover">
+			<caption>Readability Bookmarks</caption>
+			<thead>
+				<tr>
+					<th>Title</th>
+					<th>Author</th>
+					<th>Source</th>
+					<th>Conversation</th>
+				</tr>
+			</thead>
+			<tbody>
+				<!-- {% for link in twitterLinks %} -->
+				<!-- 	<a href="{{ link }}">Find Relevant Tweets</a> -->
+				<!-- {% endfor %} -->
+				{% for bookmark in bookmark_list %}
+				<tr>
+					<td>{{ bookmark.title }}</td>
+					<td>{{ bookmark.author }}</td>
+					<td>{{ bookmark.domain }}</td>
+					<td><a href="{{ bookmark.twitterLink }}">Twitter</a></td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
 	</div>
 </body>
 </html>
