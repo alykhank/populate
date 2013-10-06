@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Populate</title>
+</head>
+<body>
+	{% for bookmark in bookmark_list %}
+		<h1>{{ bookmark.article.title }}</h1>
+		<h1>{{ bookmark.article.author }}</h1>
+	{% endfor %}
+</body>
+</html>
