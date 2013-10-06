@@ -3,19 +3,19 @@ from django.db import models
 class Bookmark(models.Model):
 	user_id = models.PositiveIntegerField(default=0)
 	read_percent = models.FloatField(default=0.0)
-	date_updated = models.DateTimeField(null=True)
+	date_updated = models.DateTimeField(null=True, blank=True)
 	favorite = models.BooleanField()
-	bk_id = models.PositiveIntegerField(default=0)
-	date_archived = models.DateTimeField(null=True)
-	date_opened = models.DateTimeField(null=True)
-	date_added = models.DateTimeField(null=True)
+	bookmark_id = models.PositiveIntegerField(default=0)
+	date_archived = models.DateTimeField(null=True, blank=True)
+	date_opened = models.DateTimeField(null=True, blank=True)
+	date_added = models.DateTimeField(null=True, blank=True)
 	article_href = models.CharField(max_length=200)
-	date_favorited = models.DateTimeField(null=True)
+	date_favorited = models.DateTimeField(null=True, blank=True)
 	archive = models.BooleanField()
 	# tags
 
 	def __unicode__(self):
-		return "<Bookmark('%s', '%s')>" % (self.bookmark_id, self.article.title)
+		return "<Bookmark('%s')>" % (self.bookmark_id)
 
 class Article(models.Model):
 	domain = models.CharField(max_length=200)
@@ -28,7 +28,7 @@ class Article(models.Model):
 	excerpt = models.CharField(max_length=200)
 	word_count = models.PositiveIntegerField(default=0)
 	content = models.TextField()
-	date_published = models.DateTimeField(null=True)
+	date_published = models.DateTimeField(null=True, blank=True)
 	dek = models.CharField(max_length=200)
 	# processed
 	short_url = models.URLField()
