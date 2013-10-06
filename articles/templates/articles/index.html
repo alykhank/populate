@@ -13,6 +13,7 @@
 	<script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
 	<script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
 	<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/styles.css">
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300' rel='stylesheet' type='text/css'>
 	<!-- <link rel="icon" type="image/png" href="{{ STATIC_URL }}img/icon.png"> -->
 	<!-- <link rel="apple-touch-icon-precomposed" type="image/png" href="{{ STATIC_URL }}img/icon.png"> -->
 </head>
@@ -51,9 +52,9 @@
 				<!-- {% endfor %} -->
 				{% for bookmark in bookmark_list %}
 				<tr>
-					<td>{{ bookmark.title }}</td>
+					<td><a href="{{ bookmark.url }}">{{ bookmark.title }}</a></td>
 					<td>{{ bookmark.author }}</td>
-					<td>{{ bookmark.domain }}</td>
+					<td>{{ bookmark.domain|urlize }}</td>
 					<td><a href="{{ bookmark.twitterLink }}">Twitter</a></td>
 				</tr>
 				{% endfor %}
