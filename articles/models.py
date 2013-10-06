@@ -35,6 +35,7 @@ class Article(models.Model):
 	# article_id
 	bookmark = models.ForeignKey(Bookmark)
 	twitterLink = models.URLField()
+	ideoLink = models.URLField()
 
 	def __unicode__(self):
 		return "<Article('%s', '%s')>" % (self.title, self.author)
