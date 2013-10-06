@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from articles.models import Bookmark, Article
+from articles.models import Bookmark, Article, Alchemy, Status
 
 class ArticleInline(admin.TabularInline):
 	model = Article
@@ -13,3 +13,5 @@ class ArticleAdmin(admin.ModelAdmin):
 
 admin.site.register(Bookmark, BookmarkAdmin)
 admin.site.register(Article, ArticleAdmin)
+admin.site.register(Alchemy)
+admin.site.register(Status)
