@@ -3,14 +3,14 @@ from django.db import models
 class Bookmark(models.Model):
 	user_id = models.PositiveIntegerField(default=0)
 	read_percent = models.FloatField(default=0.0)
-	date_updated = models.DateTimeField()
+	date_updated = models.DateTimeField(null=True)
 	favorite = models.BooleanField()
-	bookmark_id = models.PositiveIntegerField(default=0)
-	date_archived = models.DateTimeField()
-	date_opened = models.DateTimeField()
-	date_added = models.DateTimeField()
+	bk_id = models.PositiveIntegerField(default=0)
+	date_archived = models.DateTimeField(null=True)
+	date_opened = models.DateTimeField(null=True)
+	date_added = models.DateTimeField(null=True)
 	article_href = models.CharField(max_length=200)
-	date_favorited = models.DateTimeField()
+	date_favorited = models.DateTimeField(null=True)
 	archive = models.BooleanField()
 	# tags
 
@@ -28,12 +28,12 @@ class Article(models.Model):
 	excerpt = models.CharField(max_length=200)
 	word_count = models.PositiveIntegerField(default=0)
 	content = models.TextField()
-	date_published = models.DateTimeField()
+	date_published = models.DateTimeField(null=True)
 	dek = models.CharField(max_length=200)
 	# processed
 	short_url = models.URLField()
 	# article_id
-	bookmark = models.OneToOneField(Bookmark)
+	bookmark = models.ForeignKey(Bookmark)
 
 	def __unicode__(self):
 		return "<Article('%s', '%s')>" % (self.title, self.author)
