@@ -1,0 +1,11 @@
+# Python
+*.py[cod]
+
+# Virtualenv
+venv
+
+# Django
+staticfiles
+
+# Heroku
+.env
