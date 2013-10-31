@@ -10,4 +10,5 @@ urlpatterns = patterns('',
 	url(r'^twitter/success/$', views.twitter_success, name='twitter_success'),
 	url(r'^readability/login/$', views.readability_login, name='readability_login'),
 	url(r'^readability/success/$', views.readability_success, name='readability_success'),
+	url(r'^readability/unlink/$', views.readability_unlink, name='readability_unlink'),
 )

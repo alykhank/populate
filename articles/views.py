@@ -49,24 +49,27 @@ def twitter_login(request):
 
 def readability_login(request):
 	if request.user.is_authenticated():
-		request_token = readability.get_raw_request_token(params={'oauth_callback': request.build_absolute_uri(reverse('articles:readability_success'))})
-		if request_token.status_code != 200:
-			return readability_login_failed(request)
-		r = urlparse.parse_qs(request_token.text)
-		if not r['oauth_callback_confirmed'][0]:
-			return readability_login_failed(request)
-		request.session['readability_request_token'] = r['oauth_token'][0]
-		request.session['readability_request_token_secret'] = r['oauth_token_secret'][0]
-		return HttpResponseRedirect(readability.authorize_url + '?oauth_token=' + request.session['readability_request_token'])
+		if not ReadabilityProfile.objects.filter(user=request.user).exists():
+			request_token = readability.get_raw_request_token(params={'oauth_callback': request.build_absolute_uri(reverse('articles:readability_success'))})
+			if request_token.status_code != 200:
+				return readability_login_failed(request)
+			r = urlparse.parse_qs(request_token.text)
+			if not r['oauth_callback_confirmed'][0]:
+				return readability_login_failed(request)
+			request.session['readability_request_token'] = r['oauth_token'][0]
+			request.session['readability_request_token_secret'] = r['oauth_token_secret'][0]
+			return HttpResponseRedirect(readability.authorize_url + '?oauth_token=' + request.session['readability_request_token'])
+		else:
+			return readability_login_failed(request, "You have already authorized Readability. Please unlink your previous account to authorize a new one.")
 	else:
-		return readability_login_failed(request)
+		return readability_login_failed(request, "You must be logged in with Twitter to authorize Readability.")
 
-def twitter_login_failed(request):
-	messages.error(request, 'Twitter login failed.')
+def twitter_login_failed(request, message='Twitter login failed.'):
+	messages.error(request, message)
 	return HttpResponseRedirect(reverse('articles:index'))
 
-def readability_login_failed(request):
-	messages.error(request, 'Readability login failed.')
+def readability_login_failed(request, message='Readability login failed.'):
+	messages.error(request, message)
 	return HttpResponseRedirect(reverse('articles:index'))
 
 def twitter_success(request):
@@ -127,12 +130,22 @@ def readability_success(request):
 		del request.session['readability_request_token']
 		del request.session['readability_request_token_secret']
 
-		profile = ReadabilityProfile(user=request.user, oauth_token=oauth_token, oauth_token_secret=oauth_token_secret)
-		profile.save()
+		if not ReadabilityProfile.objects.filter(user=request.user).exists():
+			profile = ReadabilityProfile(user=request.user, oauth_token=oauth_token, oauth_token_secret=oauth_token_secret)
+			profile.save()
+
 		messages.success(request, 'Authorized Readability. Your articles will now be imported, please be patient.')
 		return HttpResponseRedirect(reverse('articles:index'))
 	else:
 		return readability_login_failed(request)
+
+def readability_unlink(request):
+	if request.user.is_authenticated() and ReadabilityProfile.objects.filter(user=request.user).exists():
+		ReadabilityProfile.objects.get(user=request.user).delete()
+		messages.success(request, 'Unlinked your Readability account.')
+		return HttpResponseRedirect(reverse('articles:index'))
+	else:
+		return readability_login_failed(request, "You must be logged in with Twitter and have authorized Readability to unlink your Readability account.")
 
 class IndexView(generic.ListView):
 	template_name = 'articles/index.html'
