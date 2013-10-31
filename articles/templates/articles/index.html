@@ -31,6 +31,7 @@
 		</div><!-- navbar-header -->
 		<div class="collapse navbar-collapse navbar-ex1-collapse">
 			{% if user.is_authenticated %}
+			<a href="{% url 'articles:bookmarks' %}"><button type="button" class="btn btn-danger navbar-btn">Import Readability Articles</button></a>
 			<ul class="nav navbar-nav navbar-right">
 				<li class="navbar-text">{{ user }}</li>
 				<li><a href="{% url 'articles:readability_login' %}">Authorize Readability</a></li>

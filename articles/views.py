@@ -1,6 +1,6 @@
 import os, json, urlparse
 import requests
-from rauth import OAuth1Service
+from rauth import OAuth1Service, OAuth1Session
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
 from django.core.urlresolvers import reverse
@@ -134,7 +134,7 @@ def readability_success(request):
 			profile = ReadabilityProfile(user=request.user, oauth_token=oauth_token, oauth_token_secret=oauth_token_secret)
 			profile.save()
 
-		messages.success(request, 'Authorized Readability. Your articles will now be imported, please be patient.')
+		messages.success(request, 'Authorized Readability. You may now import your articles.')
 		return HttpResponseRedirect(reverse('articles:index'))
 	else:
 		return readability_login_failed(request)
@@ -154,32 +154,35 @@ class IndexView(generic.ListView):
 	def get_queryset(self):
 		return Article.objects.all()
 
-def bookmarks(request, request_token, request_token_secret, oauth_verifier):
-	session = readability.get_auth_session(request_token, request_token_secret, data={'oauth_verifier': oauth_verifier})
-	bookmarks = session.get('bookmarks').content
-	bkmkjson = json.loads(bookmarks)
-	for b in bkmkjson['bookmarks']:
-		bookmark = Bookmark(user_id=b['user_id'], read_percent=b['read_percent'], date_updated=b['date_updated'], favorite=b['favorite'], date_archived=b['date_archived'], date_opened=b['date_opened'], date_added=b['date_added'], article_href=b['article_href'], date_favorited=b['date_favorited'], archive=b['archive'])
-		bookmark.save()
-		r = session.get('articles/' + b['article']['id']).content
-		a = json.loads(r)
-		article = Article(domain=a['domain'], author=a['author'], url=a['url'], lead_image_url=a['lead_image_url'], title=a['title'], excerpt=a['excerpt'], word_count=a['word_count'], content=a['content'], date_published=a['date_published'], dek=a['dek'], short_url=a['short_url'], bookmark=bookmark)
-		article.save()
-		text = requests.post('http://access.alchemyapi.com/calls/url/URLGetText', data={'apikey': os.environ.get('ALCHEMY_API_KEY'), 'url': a['url'], 'outputMode': 'json'}).content
-		conceptsResponse = requests.post('http://access.alchemyapi.com/calls/text/TextGetRankedConcepts', data={'apikey': os.environ.get('ALCHEMY_API_KEY'), 'text': text, 'outputMode': 'json'}).content
-		conceptsJson = json.loads(conceptsResponse)
-		for c in conceptsJson['concepts']:
-			concept = Alchemy(article=article, concept=c['text'], relevance=c['relevance'])
-			concept.save()
-		concepts = []
-		for concept in Alchemy.objects.filter(article=article):
-			concepts.append(concept.concept)
-		twitterConcepts = concepts[:3]
-		conceptString = ('+').join(twitterConcepts)
-		article.twitterLink = 'https://twitter.com/search' + '?q=' + conceptString
-		ideoConcepts = concepts[:1]
-		conceptString = ('+').join(ideoConcepts)
-		article.ideoLink = 'http://www.openideo.com/search.html' + '?text=' + conceptString
-		article.save()
-	bookmark_list = Article.objects.all()
-	return render(request, 'articles/index.html', {'bookmark_list': bookmark_list})
+def bookmarks(request):
+	if request.user.is_authenticated() and ReadabilityProfile.objects.filter(user=request.user).exists():
+		oauth_token = request.user.readabilityprofile.oauth_token
+		oauth_token_secret = request.user.readabilityprofile.oauth_token_secret
+		session = OAuth1Session(readability.consumer_key, readability.consumer_secret, access_token=oauth_token, access_token_secret=oauth_token_secret, service=readability)
+		bookmarks = session.get('bookmarks/').content
+		bkmkjson = json.loads(bookmarks)
+		for b in bkmkjson['bookmarks']:
+			bookmark = Bookmark(user_id=b['user_id'], read_percent=b['read_percent'], date_updated=b['date_updated'], favorite=b['favorite'], date_archived=b['date_archived'], date_opened=b['date_opened'], date_added=b['date_added'], article_href=b['article_href'], date_favorited=b['date_favorited'], archive=b['archive'])
+			bookmark.save()
+			r = session.get('articles/' + b['article']['id']).content
+			a = json.loads(r)
+			article = Article(domain=a['domain'], author=a['author'], url=a['url'], lead_image_url=a['lead_image_url'], title=a['title'], excerpt=a['excerpt'], word_count=a['word_count'], content=a['content'], date_published=a['date_published'], dek=a['dek'], short_url=a['short_url'], bookmark=bookmark)
+			article.save()
+			text = requests.post('http://access.alchemyapi.com/calls/url/URLGetText', data={'apikey': os.environ.get('ALCHEMY_API_KEY'), 'url': a['url'], 'outputMode': 'json'}).content
+			conceptsResponse = requests.post('http://access.alchemyapi.com/calls/text/TextGetRankedConcepts', data={'apikey': os.environ.get('ALCHEMY_API_KEY'), 'text': text, 'outputMode': 'json'}).content
+			conceptsJson = json.loads(conceptsResponse)
+			for c in conceptsJson['concepts']:
+				concept = Alchemy(article=article, concept=c['text'], relevance=c['relevance'])
+				concept.save()
+			concepts = []
+			for concept in Alchemy.objects.filter(article=article):
+				concepts.append(concept.concept)
+			twitterConcepts = concepts[:3]
+			conceptString = ('+').join(twitterConcepts)
+			article.twitterLink = 'https://twitter.com/search' + '?q=' + conceptString
+			ideoConcepts = concepts[:1]
+			conceptString = ('+').join(ideoConcepts)
+			article.ideoLink = 'http://www.openideo.com/search.html' + '?text=' + conceptString
+			article.save()
+		bookmark_list = Article.objects.all()
+	return HttpResponseRedirect(reverse('articles:index'))
