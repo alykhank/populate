@@ -129,6 +129,8 @@ def readability_success(request):
 		del request.session['readability_request_token']
 		del request.session['readability_request_token_secret']
 
+		profile = ReadabilityProfile(user=request.user, oauth_token=oauth_token, oauth_token_secret=oauth_token_secret)
+		profile.save()
 		messages.success(request, 'Authorized Readability. Your articles will now be imported, please be patient.')
 		return HttpResponseRedirect(reverse('articles:index'))
 	else:

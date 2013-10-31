@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 class TwitterProfile(models.Model):
 	"""
-		An example Profile model that handles storing the oauth_token and
+		A Profile model that handles storing the oauth_token and
 		oauth_secret in relation to a user.
 	"""
 	user = models.OneToOneField(User)
@@ -13,7 +13,7 @@ class TwitterProfile(models.Model):
 
 class ReadabilityProfile(models.Model):
 	"""
-		An example Profile model that handles storing the oauth_token and
+		A Profile model that handles storing the oauth_token and
 		oauth_secret in relation to a user.
 	"""
 	user = models.OneToOneField(User)
