@@ -141,22 +141,6 @@ class IndexView(generic.ListView):
 	def get_queryset(self):
 		return Article.objects.all()
 
-def auth(request):
-	redirect_uri = 'http://populate-mit.herokuapp.com/auth'
-	request_token, request_token_secret = readability.get_request_token()
-	url = readability.get_authorize_url(request_token, data={'oauth_callback': redirect_uri})
-	return render(request, 'articles/auth.html', {'request_token': request_token, 'request_token_secret': request_token_secret, 'oauth_url': url})
-
-def submit(request):
-	try:
-		request_token = request.POST['request_token']
-		request_token_secret = request.POST['request_token_secret']
-		oauth_verifier = request.POST['verification']
-	except (KeyError):
-		return render(request, 'articles/index.html')
-	else:
-		return HttpResponseRedirect(reverse('articles:bookmarks', kwargs={'request_token': request_token, 'request_token_secret': request_token_secret, 'oauth_verifier': oauth_verifier}))
-
 def bookmarks(request, request_token, request_token_secret, oauth_verifier):
 	session = readability.get_auth_session(request_token, request_token_secret, data={'oauth_verifier': oauth_verifier})
 	bookmarks = session.get('bookmarks').content

@@ -30,13 +30,10 @@
 			<a class="navbar-brand" href="/">Populate</a>
 		</div><!-- navbar-header -->
 		<div class="collapse navbar-collapse navbar-ex1-collapse">
-			<ul class="nav navbar-nav">
-				<li><a href="{% url 'articles:auth' %}">Authorize Services</a></li>
-				<li><a href="{% url 'articles:readability_login' %}">Readability</a></li>
-			</ul>
 			{% if user.is_authenticated %}
 			<ul class="nav navbar-nav navbar-right">
 				<li class="navbar-text">{{ user }}</li>
+				<li><a href="{% url 'articles:readability_login' %}">Import Readability Articles</a></li>
 				<li><a href="{% url 'articles:logout' %}">Logout</a></li>
 			</ul>
 			{% else %}
