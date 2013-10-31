@@ -149,10 +149,10 @@ def readability_unlink(request):
 
 class IndexView(generic.ListView):
 	template_name = 'articles/index.html'
-	context_object_name = 'bookmark_list'
 
 	def get_queryset(self):
-		return Article.objects.all()
+		if self.request.user.is_authenticated():
+			return Article.objects.filter(bookmark__user=self.request.user)
 
 def bookmarks(request):
 	if request.user.is_authenticated() and ReadabilityProfile.objects.filter(user=request.user).exists():
@@ -162,7 +162,7 @@ def bookmarks(request):
 		bookmarks = session.get('bookmarks/').content
 		bkmkjson = json.loads(bookmarks)
 		for b in bkmkjson['bookmarks']:
-			bookmark = Bookmark(user_id=b['user_id'], read_percent=b['read_percent'], date_updated=b['date_updated'], favorite=b['favorite'], date_archived=b['date_archived'], date_opened=b['date_opened'], date_added=b['date_added'], article_href=b['article_href'], date_favorited=b['date_favorited'], archive=b['archive'])
+			bookmark = Bookmark(user=request.user, readability_user_id=b['user_id'], read_percent=b['read_percent'], date_updated=b['date_updated'], favorite=b['favorite'], date_archived=b['date_archived'], date_opened=b['date_opened'], date_added=b['date_added'], article_href=b['article_href'], date_favorited=b['date_favorited'], archive=b['archive'])
 			bookmark.save()
 			r = session.get('articles/' + b['article']['id']).content
 			a = json.loads(r)

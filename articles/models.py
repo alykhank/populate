@@ -20,7 +20,8 @@ class ReadabilityProfile(models.Model):
 	oauth_token_secret = models.CharField(max_length=200)
 
 class Bookmark(models.Model):
-	user_id = models.PositiveIntegerField(default=0)
+	user = models.ForeignKey(User)
+	readability_user_id = models.PositiveIntegerField(default=0)
 	read_percent = models.FloatField(default=0.0)
 	date_updated = models.DateTimeField(null=True, blank=True)
 	favorite = models.BooleanField()
