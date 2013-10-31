@@ -87,7 +87,6 @@ def twitter_success(request):
 		request.session['twitter_access_token_secret'] = oauth_token_secret
 		request.session['twitter_user_id'] = r['user_id'][0]
 		screen_name = r['screen_name'][0]
-		request.session['twitter_screen_name'] = screen_name
 		del request.session['twitter_request_token']
 		del request.session['twitter_request_token_secret']
 
@@ -95,7 +94,7 @@ def twitter_success(request):
 			user = User.objects.get(username=screen_name)
 		except:
 			user = User.objects.create_user(screen_name, None, oauth_token_secret)
-			profile = TwitterProfile(user=user, oauth_token=oauth_token, oauth_token_secret=oauth_token_secret, screen_name=screen_name)
+			profile = TwitterProfile(user=user, oauth_token=oauth_token, oauth_token_secret=oauth_token_secret)
 			profile.save()
 
 		user = authenticate(username=screen_name, password=oauth_token_secret)
@@ -125,7 +124,6 @@ def readability_success(request):
 		request.session['readability_access_token'] = oauth_token
 		oauth_token_secret = r['oauth_token_secret'][0]
 		request.session['readability_access_token_secret'] = oauth_token_secret
-		screen_name = request.session['twitter_screen_name']
 		del request.session['readability_request_token']
 		del request.session['readability_request_token_secret']
 
