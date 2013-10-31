@@ -1,12 +1,25 @@
+import os, json, urlparse
+import requests
+from rauth import OAuth1Service
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.views import generic
-import os, json
-import requests
-from rauth import OAuth1Service
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout as django_logout
+from django.contrib.auth.models import User
 
 from articles.models import Bookmark, Article, Alchemy, Status
+
+twitter = OAuth1Service(
+	name = 'twitter',
+	consumer_key = os.environ.get('TWITTER_CONS_KEY'),
+	consumer_secret = os.environ.get('TWITTER_CONS_SECRET'),
+	request_token_url = 'https://api.twitter.com/oauth/request_token',
+	authorize_url = 'https://api.twitter.com/oauth/authorize',
+	access_token_url = 'https://api.twitter.com/oauth/access_token',
+	base_url = 'https://api.twitter.com/'
+)
 
 readability = OAuth1Service(
 	consumer_key=os.environ.get('CONS_KEY'),
@@ -17,6 +30,69 @@ readability = OAuth1Service(
 	access_token_url='https://www.readability.com/api/rest/v1/oauth/access_token/',
 	base_url='https://www.readability.com/api/rest/v1/'
 )
+
+def logout(request):
+	django_logout(request)
+	messages.success(request, 'Successfully logged out.')
+	return HttpResponseRedirect(reverse('articles:index'))
+
+def twitter_login(request):
+	request_token = twitter.get_raw_request_token(params={'oauth_callback': request.build_absolute_uri(reverse('articles:twitter_success'))})
+	if request_token.status_code != 200:
+		return twitter_login_failed(request)
+	r = urlparse.parse_qs(request_token.text)
+	if not r['oauth_callback_confirmed'][0]:
+		return twitter_login_failed(request)
+	request.session['request_token'] = r['oauth_token'][0]
+	request.session['request_token_secret'] = r['oauth_token_secret'][0]
+	return HttpResponseRedirect(twitter.base_url + 'oauth/authenticate?oauth_token=' + request.session['request_token'])
+
+def twitter_login_failed(request):
+	messages.error(request, 'Twitter login failed.')
+	return HttpResponseRedirect(reverse('articles:index'))
+
+def twitter_success(request):
+	oauth_token = request.GET.get('oauth_token')
+	oauth_verifier = request.GET.get('oauth_verifier')
+	if 'request_token' in request.session and 'request_token_secret' in request.session:
+		request_token = request.session['request_token']
+		request_token_secret = request.session['request_token_secret']
+		if request_token != oauth_token:
+			return twitter_login_failed(request)
+		access_token = twitter.get_raw_access_token(request_token, request_token_secret, params={'oauth_verifier': oauth_verifier})
+		if access_token.status_code != 200:
+			return twitter_login_failed(request)
+		r = urlparse.parse_qs(access_token.text)
+		oauth_token = r['oauth_token'][0]
+		request.session['access_token'] = oauth_token
+		oauth_token_secret = r['oauth_token_secret'][0]
+		request.session['access_token_secret'] = oauth_token_secret
+		request.session['user_id'] = r['user_id'][0]
+		screen_name = r['screen_name'][0]
+		request.session['screen_name'] = screen_name
+		del request.session['request_token']
+		del request.session['request_token_secret']
+
+		try:
+			user = User.objects.get(username=screen_name)
+		except:
+			user = User.objects.create_user(screen_name, None, oauth_token_secret)
+			profile = TwitterProfile(user=user, oauth_token=oauth_token, oauth_token_secret=oauth_token_secret, screen_name=screen_name)
+			profile.save()
+
+		user = authenticate(username=screen_name, password=oauth_token_secret)
+		if user is not None and user.is_active:
+			login(request, user)
+			messages.success(request, 'Logged in as ' + user.username + '.')
+			return HttpResponseRedirect(reverse('articles:index'))
+		else:
+			messages.error(request, 'Invalid login.')
+			return HttpResponseRedirect(reverse('articles:index'))
+
+		messages.success(request, 'Logged in with Twitter as ' + request.session['screen_name'] + '.')
+		return HttpResponseRedirect(reverse('articles:index'))
+	else:
+		return twitter_login_failed(request)
 
 class IndexView(generic.ListView):
 	template_name = 'articles/index.html'

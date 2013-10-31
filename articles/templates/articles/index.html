@@ -33,9 +33,29 @@
 			<ul class="nav navbar-nav">
 				<li><a href="{% url 'articles:auth' %}">Authorize Services</a></li>
 			</ul>
+			{% if user.is_authenticated %}
+			<ul class="nav navbar-nav navbar-right">
+				<li class="navbar-text">{{ user }}</li>
+				<li><a href="{% url 'articles:logout' %}">Logout</a></li>
+			</ul>
+			{% else %}
+			<ul class="nav navbar-nav navbar-right">
+				<li><a href="{% url 'articles:twitter_login' %}"><img src="{{ STATIC_URL }}img/sign-in-with-twitter-gray.png" alt="Sign in with Twitter"></a></li>
+			</ul>
+			{% endif %}
 		</div><!-- navbar-collapse -->
 	</nav>
 	<div class="container">
+		<div class="row">
+			{% if messages %}
+				{% for message in messages %}
+				<div class="text-center alert {% if message.tags %}{{ message.tags }}{% endif %} alert-dismissable fade in col-md-4 col-md-offset-4">
+					<button type="button" class="close" aria-hidden="true" data-dismiss="alert">&times;</button>
+					{{ message }}
+				</div>
+				{% endfor %}
+			{% endif %}
+		</div>
 		<table class="table table-hover">
 			<caption>Readability Bookmarks</caption>
 			<thead>
