@@ -11,6 +11,15 @@ class TwitterProfile(models.Model):
 	oauth_token_secret = models.CharField(max_length=200)
 	screen_name = models.CharField(max_length=200)
 
+class ReadabilityProfile(models.Model):
+	"""
+		An example Profile model that handles storing the oauth_token and
+		oauth_secret in relation to a user.
+	"""
+	user = models.OneToOneField(User)
+	oauth_token = models.CharField(max_length=200)
+	oauth_token_secret = models.CharField(max_length=200)
+
 class Bookmark(models.Model):
 	user_id = models.PositiveIntegerField(default=0)
 	read_percent = models.FloatField(default=0.0)

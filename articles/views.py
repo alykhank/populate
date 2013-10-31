@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout as django_logout
 from django.contrib.auth.models import User
 
-from articles.models import Bookmark, Article, Alchemy, Status
+from articles.models import Bookmark, Article, Alchemy, Status, TwitterProfile, ReadabilityProfile
 
 twitter = OAuth1Service(
 	name = 'twitter',
@@ -22,13 +22,13 @@ twitter = OAuth1Service(
 )
 
 readability = OAuth1Service(
-	consumer_key=os.environ.get('CONS_KEY'),
-	consumer_secret=os.environ.get('CONS_SECRET'),
 	name='readability',
-	request_token_url='https://www.readability.com/api/rest/v1/oauth/request_token/',
-	authorize_url='https://www.readability.com/api/rest/v1/oauth/authorize/',
-	access_token_url='https://www.readability.com/api/rest/v1/oauth/access_token/',
-	base_url='https://www.readability.com/api/rest/v1/'
+	consumer_key = os.environ.get('CONS_KEY'),
+	consumer_secret = os.environ.get('CONS_SECRET'),
+	request_token_url = 'https://www.readability.com/api/rest/v1/oauth/request_token/',
+	authorize_url = 'https://www.readability.com/api/rest/v1/oauth/authorize/',
+	access_token_url = 'https://www.readability.com/api/rest/v1/oauth/access_token/',
+	base_url = 'https://www.readability.com/api/rest/v1/'
 )
 
 def logout(request):
@@ -43,20 +43,38 @@ def twitter_login(request):
 	r = urlparse.parse_qs(request_token.text)
 	if not r['oauth_callback_confirmed'][0]:
 		return twitter_login_failed(request)
-	request.session['request_token'] = r['oauth_token'][0]
-	request.session['request_token_secret'] = r['oauth_token_secret'][0]
-	return HttpResponseRedirect(twitter.base_url + 'oauth/authenticate?oauth_token=' + request.session['request_token'])
+	request.session['twitter_request_token'] = r['oauth_token'][0]
+	request.session['twitter_request_token_secret'] = r['oauth_token_secret'][0]
+	return HttpResponseRedirect(twitter.base_url + 'oauth/authenticate?oauth_token=' + request.session['twitter_request_token'])
+
+def readability_login(request):
+	if request.user.is_authenticated():
+		request_token = readability.get_raw_request_token(params={'oauth_callback': request.build_absolute_uri(reverse('articles:readability_success'))})
+		if request_token.status_code != 200:
+			return readability_login_failed(request)
+		r = urlparse.parse_qs(request_token.text)
+		if not r['oauth_callback_confirmed'][0]:
+			return readability_login_failed(request)
+		request.session['readability_request_token'] = r['oauth_token'][0]
+		request.session['readability_request_token_secret'] = r['oauth_token_secret'][0]
+		return HttpResponseRedirect(readability.authorize_url + '?oauth_token=' + request.session['readability_request_token'])
+	else:
+		return readability_login_failed(request)
 
 def twitter_login_failed(request):
 	messages.error(request, 'Twitter login failed.')
 	return HttpResponseRedirect(reverse('articles:index'))
 
+def readability_login_failed(request):
+	messages.error(request, 'Readability login failed.')
+	return HttpResponseRedirect(reverse('articles:index'))
+
 def twitter_success(request):
 	oauth_token = request.GET.get('oauth_token')
 	oauth_verifier = request.GET.get('oauth_verifier')
-	if 'request_token' in request.session and 'request_token_secret' in request.session:
-		request_token = request.session['request_token']
-		request_token_secret = request.session['request_token_secret']
+	if 'twitter_request_token' in request.session and 'twitter_request_token_secret' in request.session:
+		request_token = request.session['twitter_request_token']
+		request_token_secret = request.session['twitter_request_token_secret']
 		if request_token != oauth_token:
 			return twitter_login_failed(request)
 		access_token = twitter.get_raw_access_token(request_token, request_token_secret, params={'oauth_verifier': oauth_verifier})
@@ -64,14 +82,14 @@ def twitter_success(request):
 			return twitter_login_failed(request)
 		r = urlparse.parse_qs(access_token.text)
 		oauth_token = r['oauth_token'][0]
-		request.session['access_token'] = oauth_token
+		request.session['twitter_access_token'] = oauth_token
 		oauth_token_secret = r['oauth_token_secret'][0]
-		request.session['access_token_secret'] = oauth_token_secret
-		request.session['user_id'] = r['user_id'][0]
+		request.session['twitter_access_token_secret'] = oauth_token_secret
+		request.session['twitter_user_id'] = r['user_id'][0]
 		screen_name = r['screen_name'][0]
-		request.session['screen_name'] = screen_name
-		del request.session['request_token']
-		del request.session['request_token_secret']
+		request.session['twitter_screen_name'] = screen_name
+		del request.session['twitter_request_token']
+		del request.session['twitter_request_token_secret']
 
 		try:
 			user = User.objects.get(username=screen_name)
@@ -83,16 +101,38 @@ def twitter_success(request):
 		user = authenticate(username=screen_name, password=oauth_token_secret)
 		if user is not None and user.is_active:
 			login(request, user)
-			messages.success(request, 'Logged in as ' + user.username + '.')
+			messages.success(request, 'Logged in with Twitter as ' + user.username + '.')
 			return HttpResponseRedirect(reverse('articles:index'))
 		else:
 			messages.error(request, 'Invalid login.')
 			return HttpResponseRedirect(reverse('articles:index'))
-
-		messages.success(request, 'Logged in with Twitter as ' + request.session['screen_name'] + '.')
-		return HttpResponseRedirect(reverse('articles:index'))
 	else:
 		return twitter_login_failed(request)
+
+def readability_success(request):
+	oauth_token = request.GET.get('oauth_token')
+	oauth_verifier = request.GET.get('oauth_verifier')
+	if request.user.is_authenticated() and 'readability_request_token' in request.session and 'readability_request_token_secret' in request.session:
+		request_token = request.session['readability_request_token']
+		request_token_secret = request.session['readability_request_token_secret']
+		if request_token != oauth_token:
+			return readability_login_failed(request)
+		access_token = readability.get_raw_access_token(request_token, request_token_secret, params={'oauth_verifier': oauth_verifier})
+		if access_token.status_code != 200:
+			return readability_login_failed(request)
+		r = urlparse.parse_qs(access_token.text)
+		oauth_token = r['oauth_token'][0]
+		request.session['readability_access_token'] = oauth_token
+		oauth_token_secret = r['oauth_token_secret'][0]
+		request.session['readability_access_token_secret'] = oauth_token_secret
+		screen_name = request.session['twitter_screen_name']
+		del request.session['readability_request_token']
+		del request.session['readability_request_token_secret']
+
+		messages.success(request, 'Authorized Readability. Your articles will now be imported, please be patient.')
+		return HttpResponseRedirect(reverse('articles:index'))
+	else:
+		return readability_login_failed(request)
 
 class IndexView(generic.ListView):
 	template_name = 'articles/index.html'
