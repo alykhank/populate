@@ -1,1 +1,1 @@
-web: gunicorn populate.wsgi
+web: newrelic-admin run-program gunicorn populate.wsgi
