@@ -2,5 +2,5 @@ language: python
 before_script:
   - psql -c 'create database populate;' -U postgres
 # command to run tests
-script:
+script: manage.py test articles
 env: DATABASE_URL=postgres://postgres@localhost/populate
