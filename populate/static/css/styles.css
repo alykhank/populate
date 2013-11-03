@@ -1,3 +1,14 @@
 body {
+	padding-top: 70px;
 	font-family: 'Open Sans', sans-serif;
+	background: rgb(241, 236, 236);
+}
+
+h1, h2, h3, h4, h5, h6 {
+	font-family: 'Open Sans', sans-serif;
+}
+
+#welcome.jumbotron {
+	background: rgb(227, 61, 61);
+	color: rgb(241, 236, 236);
 }
