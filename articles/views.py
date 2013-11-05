@@ -159,7 +159,7 @@ def bookmarks(request):
 		oauth_token = request.user.readabilityprofile.oauth_token
 		oauth_token_secret = request.user.readabilityprofile.oauth_token_secret
 		session = OAuth1Session(readability.consumer_key, readability.consumer_secret, access_token=oauth_token, access_token_secret=oauth_token_secret, service=readability)
-		bookmarks = session.get('bookmarks/').content
+		bookmarks = session.get('bookmarks/', params={'archive': 0}).content
 		bkmkjson = json.loads(bookmarks)
 		for b in bkmkjson['bookmarks']:
 			bookmark = Bookmark(user=request.user, readability_user_id=b['user_id'], read_percent=b['read_percent'], date_updated=b['date_updated'], favorite=b['favorite'], date_archived=b['date_archived'], date_opened=b['date_opened'], date_added=b['date_added'], article_href=b['article_href'], date_favorited=b['date_favorited'], archive=b['archive'])
