@@ -69,6 +69,7 @@ class Alchemy(models.Model):
 		return self.concept
 
 class Status(models.Model):
+	article = models.ForeignKey(Article)
 	text = models.CharField(max_length=200)
 	user_name = models.CharField(max_length=200)
 	user_image = models.URLField(null=True)

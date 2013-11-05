@@ -177,9 +177,19 @@ def bookmarks(request):
 			concepts = []
 			for concept in Alchemy.objects.filter(article=article):
 				concepts.append(concept.concept)
-			twitterConcepts = concepts[:3]
+			twitterConcepts = concepts[:1]
 			conceptString = ('+').join(twitterConcepts)
 			article.twitterLink = 'https://twitter.com/search' + '?q=' + conceptString
+
+			oauth_token = request.user.twitterprofile.oauth_token
+			oauth_token_secret = request.user.twitterprofile.oauth_token_secret
+			session = OAuth1Session(twitter.consumer_key, twitter.consumer_secret, access_token=oauth_token, access_token_secret=oauth_token_secret, service=twitter)
+			tweets = session.get('https://api.twitter.com/1.1/search/tweets.json', params={'q': conceptString}).content
+			tweetjson = json.loads(tweets)
+			for t in tweetjson['statuses']:
+				tweet = Status(article=article, text=t['text'], user_name=t['user']['name'], user_image=t['user']['profile_image_url'], user_screenname=t['user']['screen_name'])
+				tweet.save()
+
 			ideoConcepts = concepts[:1]
 			conceptString = ('+').join(ideoConcepts)
 			article.ideoLink = 'http://www.openideo.com/search.html' + '?text=' + conceptString
