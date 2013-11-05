@@ -7,4 +7,4 @@ The To Do List
 - [ ] write data scrapper for OpenIDEO?
 - [ ] implement Charitable Opportunities feed
 - [ ] implement tl;dr integration into reader app
-- [ ] a task list item
+- [x] a task list item
